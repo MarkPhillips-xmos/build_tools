@@ -70,9 +70,9 @@ my_containers = collections.OrderedDict([
   ("xgdb_combined"        , ("xsim_combined", "tools_common",)),
   ("xcc_driver"           , ("tools_common",)),
   ("xcommon"              , ()),
-  ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
 
   ("tools_libs_combined"  , ("tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
+  ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
   ("tools_xcore_libs"     , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", "tools_libs_combined")),
 
   ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
@@ -360,3 +360,6 @@ for c in containers_todo:
 #
 #  # Build a subset of repos within container repos
 #  python ~/bin/build_tools.py tools_common:infr_libs_cpp xmap xgdb_combined xflash:tools_xflash tools_installers:tools_installers
+
+# Build all
+# ./build_tools.py xcommon tools_common ar tools_xpp xc_compiler_combined xas xmap xobjdump xsim_combined xgdb_combined xcc_driver tools_libs_combined xscope tools_xcore_libs xflash tools_installers

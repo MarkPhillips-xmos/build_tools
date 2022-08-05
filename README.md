@@ -1,7 +1,6 @@
 # build_tools
-Mechanism for building the XTC Tools
 
-This is a mechanism to build the XTC Tools outside of Jenkins, for example on a developers local machine.
+This is a mechanism to build the XTC Tools outside of Jenkins, for example on a developer's local machine.
 
 It allows users to pick up certain "containers" as pre-built atrefacts from Jenkins and users to build local versions of chosen "containers". See: https://xmosjira.atlassian.net/wiki/spaces/TG/pages/1039204573/Understanding+Build.pl+dependencies
 
