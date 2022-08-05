@@ -16,29 +16,36 @@ import sys
 # identically to how Jenkins will do so
 #
 container_info = {
-  "xmap"       : {"domain" : "tools_xmap", "flat_structure" : True },
-  "xcc_driver" : {"domain" : "tools_xcc",  "flat_structure" : True },
-  "xas"        : {"domain" : "tools_xas",  "flat_structure" : True },
+  "xmap"       : {"domain" : "tools_xmap",     "flat_structure" : True },
+  "xcc_driver" : {"domain" : "tools_xcc",      "flat_structure" : True },
+  "xas"        : {"domain" : "tools_xas",      "flat_structure" : True },
+  "xobjdump"   : {"domain" : "tools_xobjdump", "flat_structure" : True },
+  "xscope"     : {"domain" : "tools_xtrace",   "flat_structure" : True },
+  "tools_xcore_libs"     : {"domain" : "tools_xcore_libs",   "flat_structure" : True },
 }
 
 #
 # The following specifies the tarballs created and exported by each container repo
 #
 container_exports = {
-    "tools_common"  : ("Linux64_tools_common_Installs.tgz", "Linux64_tools_common_private.tgz"),
-    "ar"            : ("Linux64_ar_Installs.tgz",),
-    "tools_xpp"          : ("Linux64_tools_xpp_*.tgz",),
-    "xc_compiler_combined" : ("Linux64_xc_compiler_combined_Installs.tgz", "Linux64_xc_compiler_combined_private.tgz"),
-    "xas"          : ("Linux64_xas_Installs.tgz",),
-    "tools_libs_combined" : ("Linux64_tools_libs_combined_Installs.tgz",),
-    "xmap"          : ("Linux64_xmap_Installs.tgz",),
-    "xflash"        : ("Linux64_xflash_Installs.tgz",),
-    "xgdb_combined" : ("Linux64_xgdb_combined_Installs.tgz",),
-    "xcc_driver"    : ("Linux64_xcc_driver_Installs.tgz",),
-    "xsim_combined" : ("Linux64_xsim_combined_Installs.tgz", "Linux64_xsim_combined_private.tgz"),
-    "tools_axe_combined" : ("Linux64_tools_axe_combined_Installs.tgz", "Linux64_tools_axe_combined_private.tgz"),
-
-    "xcommon"       : ("Linux64_xcommon.tgz"),
+  # Container              # List of exports
+  "tools_common"         : ("Linux64_tools_common_Installs.tgz", "Linux64_tools_common_private.tgz"),
+  "ar"                   : ("Linux64_ar_Installs.tgz",),
+  "tools_xpp"            : ("Linux64_tools_xpp_Installs.tgz",),
+  "xc_compiler_combined" : ("Linux64_xc_compiler_combined_Installs.tgz", "Linux64_xc_compiler_combined_private.tgz"),
+  "xas"                  : ("Linux64_xas_Installs.tgz",),
+  "xobjdump"             : ("Linux64_xobjdump_Installs.tgz",),
+  "tools_libs_combined"  : ("Linux64_tools_libs_combined_Installs.tgz",),
+  "xmap"                 : ("Linux64_xmap_Installs.tgz",),
+  "xflash"               : ("Linux64_xflash_Installs.tgz",),
+  "xgdb_combined"        : ("Linux64_xgdb_combined_Installs.tgz",),
+  "xcc_driver"           : ("Linux64_xcc_driver_Installs.tgz",),
+  "xsim_combined"        : ("Linux64_xsim_combined_Installs.tgz", "Linux64_xsim_combined_private.tgz"),
+  "tools_axe_combined"   : ("Linux64_tools_axe_combined_Installs.tgz", "Linux64_tools_axe_combined_private.tgz"),
+  "xcommon"              : ("Linux64_xcommon.tgz",),
+  "xscope"               : ("Linux64_xscope_Installs.tgz", "Linux64_xscope_private.tgz"),
+  "tools_xcore_libs"     : ("Linux64_tools_xcore_libs_Installs.tgz", "Linux64_tools_xcore_libs_private.tgz"),
+  "xgdb_combined"        : ("Linux64_xgdb_combined_Installs.tgz",)
 }
 
 # Each container must specify which containers it is dependent
@@ -50,26 +57,26 @@ container_exports = {
 # in terms of the container build hierarchy
 #
 my_containers = collections.OrderedDict([
-  # Container          # List of dependent containers which have been edited and built
-
+  # Container               # List of dependent containers which have been edited and built
   ("tools_common"         , ()),
   ("ar"                   , ()),
   ("tools_xpp"            , ()),
   ("xc_compiler_combined" , ("tools_common",)),
   ("xas"                  , ("tools_common",)),
   ("xmap"                 , ("tools_common",)),
+  ("xobjdump"             , ("tools_common",)),
   ("xsim_combined"        , ("tools_common",)),
   ("tools_axe_combined"   , ()),
   ("xgdb_combined"        , ("xsim_combined", "tools_common",)),
   ("xcc_driver"           , ("tools_common",)),
   ("xcommon"              , ()),
+  ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
 
-  ("tools_libs_combined"  , ("tools_common", "xmap")),
+  ("tools_libs_combined"  , ("tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
+  ("tools_xcore_libs"     , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", "tools_libs_combined")),
 
-  ("xflash"               , ("tools_common", "tools_libs_combined", "xmap")),
-#  ("tools_installers"     , ("tools_common", "tools_libs_combined", "xflash", "xmap", "xgdb_combined", "xcc_driver")),
-
-  ("tools_installers"     , ("tools_common",)),
+  ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
+  ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
 ])
 
 
@@ -77,12 +84,13 @@ ignoreDomains = ["lib_xmlobject_py"]
 
 def ParseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--clone',    default=False, action='store_true', help='Create a new working area')
-    parser.add_argument('--update',   default=False, action='store_true', help='Use with --clone to update a new working area with latest Jenkins tarballs')
-    parser.add_argument('--debug',    default=False, action='store_true', help='Enable debug prints')
-    parser.add_argument('--dryrun',   default=False, action='store_true', help='Do not execute commands')
-    parser.add_argument('--mkroot',   default=False, action='store_true', help='Make a new working area root')
-    parser.add_argument('containers', default=None,  nargs="*")
+    parser.add_argument('--clone',      default=False, action='store_true', help='Create a new working area')
+    parser.add_argument('--debugbuild', default=False, action='store_true', help='Build with debug (CONFIG=Debug)')
+    parser.add_argument('--debug',      default=False, action='store_true', help='Enable debug prints')
+    parser.add_argument('--dryrun',     default=False, action='store_true', help='Do not execute commands')
+    parser.add_argument('--mkroot',     default=False, action='store_true', help='Make a new working area root')
+    parser.add_argument('--update',     default=False, action='store_true', help='Use with --clone to update a new working area with latest Jenkins tarballs')
+    parser.add_argument('containers',   default=None,  nargs="*")
 
     args = parser.parse_args()
     return args
@@ -111,16 +119,25 @@ def Build(container, domains, deps):
 
     print "Build(container, deps):", container, deps
 
+
     # Iterate of the locally built dependency container and unpack the their tarballs
     for d in deps:
-        #glist = glob.glob(d+"/*.tgz")
         glist = container_exports[d]
 
         print "Build: d, glist", d, glist
 
         os.chdir(container)
         for g in glist:
-            cmd = "tar -xf ../%s/%s" % (d, g,)
+            print "g", g
+
+            if -1 == d.find("xcommon"):
+                cmd = "tar -xf ../%s/%s" % (d, g,)
+            else:
+                # Special case for xcommon
+                if not os.path.isdir("Installs/Linux/External/Product"):
+                    Cmd("mkdir -p Installs/Linux/External/Product", True)
+                cmd = "tar -C Installs/Linux/External/Product -xf ../%s/%s" % (d, g,)
+
             print("Expanding: ", cmd)
             Cmd(cmd)
 
@@ -133,11 +150,21 @@ def Build(container, domains, deps):
         if "xsim_combined" == container:
             # Hack for xsim_combined because it has arch_roms which will not build
             domains = "arch_simulation_cpp,tools_tools_cpp,lib_softfloat,apps_plugins_cpp"
+        elif "xcommon" == container:
+            # xcommon - only build certain dommains as per Jenkinsfile
+            domains = "tools_xmake,xcommon,tools_waf_xcc"
+        elif "tools_xcore_libs" == container:
+            # tools_xcore_libs - only build certain dommains as per Jenkinsfile
+            domains = "tools_xcore_libs"
+        elif "tools_installers" == container:
+            domains = "infr_test,lib_logging_py,lib_subprocess_py,tools_installers,tools_licensing,tools_xdwarfdump_c,tools_xmosupdate,verif_tests_sw,verif_tests_xcore"
         else:
             # Find the list of domains to build - any subdir with a Build.pl file is selected
             os.chdir(container)
             glist = glob.glob("*/Build.pl")
             os.chdir("..")
+
+            print "glist: ", glist
 
             for g in glist:
                 d = os.path.dirname(g)
@@ -145,7 +172,10 @@ def Build(container, domains, deps):
                     continue
                 domains += d + ","
 
-    cmd = "sh -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && . ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=Debug'" % (container, domains)
+    ## DEBUG Build
+    ##    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=Debug'" % (container, domains)
+    ## RELEASE Build
+    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=Release'" % (container, domains)
     print "cmd: ", cmd
     Cmd(cmd, True)
 
@@ -161,11 +191,18 @@ def Build(container, domains, deps):
             # j now has skipped the steps { line
             while j < len(lines):
                 # Find a command like: '       sh """tar -czf Linux64_xmap_Installs.tgz Installs tools_xmap/test"""'
-                # Ignore nasties like xflash Linux64_xTIMEdeployer
-                if -1 != lines[j].find("sh ") and -1 != lines[j].find("Linux64") and -1 == lines[j].find("Linux64_xTIMEdeployer"):
-                    cmd = lines[j].replace("sh ", "").strip().strip('"')
-                    print "cmd:", cmd
-                    Cmd(cmd, True)
+                if -1 != lines[j].find("sh ") and -1 != lines[j].find("Linux64"):
+                    if -1 != lines[j].find("Linux64_xcommon"):
+                        # Special case for xcommon
+                        cmd = 'tar -C Installs/Linux/External/Product -czf Linux64_xcommon.tgz .'
+                        Cmd(cmd, True)
+                    elif -1 == lines[j].find("Linux64_xTIMEdeployer"):
+                        # Ignore nasties like xflash Linux64_xTIMEdeployer
+                        cmd = lines[j].replace("sh ", "").strip().strip('"')
+                        # for xc_compiler_combined:tools_xcc1_c_llvm
+                        # cmd = cmd.replace("/Release/", "/Debug/")
+                        print "cmd:", cmd
+                        Cmd(cmd, True)
                 j += 1
             break
 
@@ -241,7 +278,7 @@ def Unpack(container, updateOnly):
 
                 path = base % (subpath, t)
 
-                # Move the extsing tarball to a .1 backup
+                # Move the extsing tarball to a .1 backup otherwise wget will create the new one as <fname>.1
                 if os.path.exists(t):
                     Cmd("mv %s %s.1" % (t, t,))
 
