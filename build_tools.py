@@ -18,9 +18,11 @@ import sys
 container_info = {
   "xmap"       : {"domain" : "tools_xmap",     "flat_structure" : True },
   "xcc_driver" : {"domain" : "tools_xcc",      "flat_structure" : True },
+  "ar"         : {"domain" : "tools_ar",       "flat_structure" : True },
   "xas"        : {"domain" : "tools_xas",      "flat_structure" : True },
   "xobjdump"   : {"domain" : "tools_xobjdump", "flat_structure" : True },
   "xscope"     : {"domain" : "tools_xtrace",   "flat_structure" : True },
+  "tools_xpp"  : {"domain" : "tools_xpp",      "flat_structure" : True },
   "tools_xcore_libs"     : {"domain" : "tools_xcore_libs",   "flat_structure" : True },
 }
 
@@ -45,7 +47,6 @@ container_exports = {
   "xcommon"              : ("Linux64_xcommon.tgz",),
   "xscope"               : ("Linux64_xscope_Installs.tgz", "Linux64_xscope_private.tgz"),
   "tools_xcore_libs"     : ("Linux64_tools_xcore_libs_Installs.tgz", "Linux64_tools_xcore_libs_private.tgz"),
-  "xgdb_combined"        : ("Linux64_xgdb_combined_Installs.tgz",)
 }
 
 # Each container must specify which containers it is dependent
@@ -65,7 +66,7 @@ my_containers = collections.OrderedDict([
   ("xas"                  , ("tools_common",)),
   ("xmap"                 , ("tools_common",)),
   ("xobjdump"             , ("tools_common",)),
-  ("xsim_combined"        , ("tools_common",)),
+  ("xsim_combined"        , ("tools_common", "tools_xpp", "xas", "xc_compiler_combined", "xmap")),
   ("tools_axe_combined"   , ()),
   ("xgdb_combined"        , ("xsim_combined", "tools_common",)),
   ("xcc_driver"           , ("tools_common",)),
@@ -115,7 +116,7 @@ def Cmd(cmd, useShell=False):
         raise Exception("Error %s, failed cmd: %s" % (r, cmdsplit))
 
 
-def Build(container, domains, deps):
+def Build(container, domains, deps, debugbuild):
 
     print "Build(container, deps):", container, deps
 
@@ -172,10 +173,12 @@ def Build(container, domains, deps):
                     continue
                 domains += d + ","
 
-    ## DEBUG Build
-    ##    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=Debug'" % (container, domains)
-    ## RELEASE Build
-    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=Release'" % (container, domains)
+    if debugbuild:
+       config = "Debug"
+    else:
+       config = "Release"
+
+    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=%s'" % (container, domains, config)
     print "cmd: ", cmd
     Cmd(cmd, True)
 
@@ -199,8 +202,10 @@ def Build(container, domains, deps):
                     elif -1 == lines[j].find("Linux64_xTIMEdeployer"):
                         # Ignore nasties like xflash Linux64_xTIMEdeployer
                         cmd = lines[j].replace("sh ", "").strip().strip('"')
-                        # for xc_compiler_combined:tools_xcc1_c_llvm
-                        # cmd = cmd.replace("/Release/", "/Debug/")
+
+                        if debugbuild:
+                            # for xc_compiler_combined:tools_xcc1_c_llvm
+                            cmd = cmd.replace("/Release/", "/Debug/")
                         print "cmd:", cmd
                         Cmd(cmd, True)
                 j += 1
@@ -342,7 +347,7 @@ for c in containers_todo:
 
         deps = my_containers[repo]
 
-        Build(repo, domains, deps)
+        Build(repo, domains, deps, args.debugbuild)
 
 #
 # Example commands
