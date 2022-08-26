@@ -1,13 +1,17 @@
-#!/usr/bin/python2
-
+#!/usr/bin/env python2
 
 import argparse
 import collections
 import glob
 import os
 import os.path
+import platform
+import shutil
 import subprocess
 import sys
+
+BUILD_HOST=None
+DEST_HOST=None
 
 #
 # The following is used to map names used in the Jenkinsfile to repo names
@@ -59,6 +63,7 @@ container_exports = {
 #
 my_containers = collections.OrderedDict([
   # Container               # List of dependent containers which have been edited and built
+  ("xcommon"              , ()),
   ("tools_common"         , ()),
   ("ar"                   , ()),
   ("tools_xpp"            , ()),
@@ -66,12 +71,10 @@ my_containers = collections.OrderedDict([
   ("xas"                  , ("tools_common",)),
   ("xmap"                 , ("tools_common",)),
   ("xobjdump"             , ("tools_common",)),
+  ("xcc_driver"           , ("tools_common",)),
   ("xsim_combined"        , ("tools_common", "tools_xpp", "xas", "xc_compiler_combined", "xmap")),
   ("tools_axe_combined"   , ()),
   ("xgdb_combined"        , ("xsim_combined", "tools_common",)),
-  ("xcc_driver"           , ("tools_common",)),
-  ("xcommon"              , ()),
-
   ("tools_libs_combined"  , ("tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
   ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
   ("tools_xcore_libs"     , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", "tools_libs_combined")),
@@ -79,7 +82,6 @@ my_containers = collections.OrderedDict([
   ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
   ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
 ])
-
 
 ignoreDomains = ["lib_xmlobject_py"]
 
@@ -178,9 +180,35 @@ def Build(container, domains, deps, debugbuild):
     else:
        config = "Release"
 
-    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=%s'" % (container, domains, config)
-    print "cmd: ", cmd
-    Cmd(cmd, True)
+    #    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=%s'" % (container, domains, config)
+    ## DEBUG Build
+    ##    cmd = "bash -c 'cd %s/infr_scripts_pl/Build && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=Debug'" % (container, domains)
+    ## RELEASE Build
+
+    # TODO FAILS "source ./SetupEnv" on msys2
+    #    cmd = "bash -c 'which bash && cd %s/infr_scripts_pl/Build && ls -l && ls -l SetupEnv && source ./SetupEnv && cd ../.. && Build.pl DOMAINS=%s CONFIG=Release'" % (container, domains)
+
+    if "Linux" == BUILD_HOST:
+        with open("build.sh", "w") as f:
+            f.write("#!/usr/bin/bash\n")
+            f.write("cd %s/infr_scripts_pl/Build\n" % (container,))
+            f.write("source ./SetupEnv\n")
+            f.write("cd ../..\n")
+            f.write("Build.pl DOMAINS=%s CONFIG=%s\n" % (domains, config))
+
+        cmd = "bash build.sh"
+        print "cmd: ", cmd
+        Cmd(cmd, True)
+    else:
+        with open("build.bat", "w") as f:
+            f.write("cd %s/infr_scripts_pl/Build\n" % (container,))
+            f.write("call SetupEnv.bat\n")
+            f.write("set PATH=%PATH%;c:\\strawberry\\perl\\bin\n")
+            f.write("set VCTargetsPath=c:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Microsoft\\VC\\v170\n")
+            f.write("perl Build.pl DOMAINS=%s CONFIG=%s\n" % (domains, config))
+        cmd = "cmd /c build.bat"
+        print "cmd: ", cmd
+        Cmd(cmd, True)
 
     ## Create the tarballs for installation - find the Upload sh commands
     os.chdir(container)
@@ -197,7 +225,7 @@ def Build(container, domains, deps, debugbuild):
                 if -1 != lines[j].find("sh ") and -1 != lines[j].find("Linux64"):
                     if -1 != lines[j].find("Linux64_xcommon"):
                         # Special case for xcommon
-                        cmd = 'tar -C Installs/Linux/External/Product -czf Linux64_xcommon.tgz .'
+                        cmd = 'tar -C Installs/%s/External/Product -czf Linux64_xcommon.tgz .' % (DEST_HOST,)
                         Cmd(cmd, True)
                     elif -1 == lines[j].find("Linux64_xTIMEdeployer"):
                         # Ignore nasties like xflash Linux64_xTIMEdeployer
@@ -240,7 +268,10 @@ def Unpack(container, updateOnly):
         if flat:
 #           os.chdir("..")
            # Create for the Build fn which needs to extract the "upload entries"
-           os.symlink(tools_dir + "/Jenkinsfile", "Jenkinsfile")
+           if platform.platform().find("Windows") != -1:
+               shutil.copy(tools_dir + "/Jenkinsfile", "Jenkinsfile")
+           else:
+               os.symlink(tools_dir + "/Jenkinsfile", "Jenkinsfile")
            os.chdir("..")
 
     print("cwd: %s, tools_dir %s\n" % (os.getcwd(), tools_dir))
@@ -309,7 +340,20 @@ def Unpack(container, updateOnly):
     if not os.path.exists("%s/tools_bin2header" % (container,)):
         Cmd("cd %s && git clone git@github.com:xmos/bin2header tools_bin2header" % (container,), True)
 
-        
+
+import platform
+if platform.system() != "Windows" or  os.environ.get('MSYSTEM') != None:
+    # Building On Linux (for Linux) or on MINGW for PC
+    BUILD_HOST = "Linux"
+else:
+    BUILD_HOST = "PC"
+
+if os.environ.get('SYSTEMDRIVE'):
+    # Building on Windows (for Windows) or on MINGW for Windows
+    DEST_HOST = "PC"
+else:
+    DEST_HOST = "Linux"
+
 args = ParseArgs()
 
 
