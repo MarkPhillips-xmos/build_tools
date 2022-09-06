@@ -78,7 +78,6 @@ my_containers = collections.OrderedDict([
   ("tools_libs_combined"  , ("tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
   ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
   ("tools_xcore_libs"     , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", "tools_libs_combined")),
-
   ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
   ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
 ])
@@ -91,6 +90,7 @@ def ParseArgs():
     parser.add_argument('--debugbuild', default=False, action='store_true', help='Build with debug (CONFIG=Debug)')
     parser.add_argument('--debug',      default=False, action='store_true', help='Enable debug prints')
     parser.add_argument('--dryrun',     default=False, action='store_true', help='Do not execute commands')
+    parser.add_argument('--git',                                            help='Run git command on each repo')
     parser.add_argument('--mkroot',     default=False, action='store_true', help='Make a new working area root')
     parser.add_argument('--update',     default=False, action='store_true', help='Use with --clone to update a new working area with latest Jenkins tarballs')
     parser.add_argument('containers',   default=None,  nargs="*")
@@ -100,9 +100,7 @@ def ParseArgs():
 
 
 def Cmd(cmd, useShell=False):
-
     print( "Running cmd: ", cmd)
-
     if args.dryrun:
         return
 
@@ -119,9 +117,7 @@ def Cmd(cmd, useShell=False):
 
 
 def Build(container, domains, deps, debugbuild):
-
     print "Build(container, deps):", container, deps
-
 
     # Iterate of the locally built dependency container and unpack the their tarballs
     for d in deps:
@@ -137,9 +133,10 @@ def Build(container, domains, deps, debugbuild):
                 cmd = "tar -xf ../%s/%s" % (d, g,)
             else:
                 # Special case for xcommon
-                if not os.path.isdir("Installs/Linux/External/Product"):
-                    Cmd("mkdir -p Installs/Linux/External/Product", True)
-                cmd = "tar -C Installs/Linux/External/Product -xf ../%s/%s" % (d, g,)
+                installPath = "Installs/%s/External/Product" % (DEST_HOST,)
+                if not os.path.isdir(installPath):
+                    Cmd("mkdir -p %s" % (installPath,))
+                cmd = "tar -C %s -xf ../%s/%s" % (installPath, d, g,)
 
             print("Expanding: ", cmd)
             Cmd(cmd)
@@ -340,16 +337,27 @@ def Unpack(container, updateOnly):
     if not os.path.exists("%s/tools_bin2header" % (container,)):
         Cmd("cd %s && git clone git@github.com:xmos/bin2header tools_bin2header" % (container,), True)
 
+def Git(container, cmd):
+    os.chdir(container)
+    if os.path.exists(".git"):
+        Cmd("git status")
+        Cmd("git submodule foreach git status")
+    elif container_info[container]["flat_structure"]:
+        os.chdir(container_info[container]["domain"])
+        Cmd("git status")
+        os.chdir("..")
+    os.chdir("..")
 
 import platform
-if platform.system() != "Windows" or  os.environ.get('MSYSTEM') != None:
+if platform.system() != "Windows" or os.environ.get('MSYSTEM') != None:
     # Building On Linux (for Linux) or on MINGW for PC
     BUILD_HOST = "Linux"
 else:
     BUILD_HOST = "PC"
 
+
 if os.environ.get('SYSTEMDRIVE'):
-    # Building on Windows (for Windows) or on MINGW for Windows
+    # Building on Windows (for Windows) or on MINGW64 for Windows
     DEST_HOST = "PC"
 else:
     DEST_HOST = "Linux"
@@ -381,6 +389,8 @@ if 0 == len(containers_todo):
 for c in containers_todo:
     if args.clone:
         Unpack(c, args.update)
+    elif args.git:
+        Git(c, args.git)
     else:
         parts = c.split(":")
         repo = parts[0]
