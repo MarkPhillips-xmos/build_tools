@@ -201,7 +201,7 @@ def Build(container, domains, deps, debugbuild):
             f.write("cd %s/infr_scripts_pl/Build\n" % (container,))
             f.write("call SetupEnv.bat\n")
             f.write("set PATH=%PATH%;c:\\strawberry\\perl\\bin\n")
-            f.write("set VCTargetsPath=c:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Microsoft\\VC\\v170\n")
+#            f.write("set VCTargetsPath=c:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Microsoft\\VC\\v170\n")
             f.write("perl Build.pl DOMAINS=%s CONFIG=%s\n" % (domains, config))
         cmd = "cmd /c build.bat"
         print "cmd: ", cmd
