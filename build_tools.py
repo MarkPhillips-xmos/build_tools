@@ -35,22 +35,22 @@ container_info = {
 #
 container_exports = {
   # Container              # List of exports
-  "tools_common"         : ("Linux64_tools_common_Installs.tgz", "Linux64_tools_common_private.tgz"),
-  "ar"                   : ("Linux64_ar_Installs.tgz",),
-  "tools_xpp"            : ("Linux64_tools_xpp_Installs.tgz",),
-  "xc_compiler_combined" : ("Linux64_xc_compiler_combined_Installs.tgz", "Linux64_xc_compiler_combined_private.tgz"),
-  "xas"                  : ("Linux64_xas_Installs.tgz",),
-  "xobjdump"             : ("Linux64_xobjdump_Installs.tgz",),
-  "tools_libs_combined"  : ("Linux64_tools_libs_combined_Installs.tgz",),
-  "xmap"                 : ("Linux64_xmap_Installs.tgz",),
-  "xflash"               : ("Linux64_xflash_Installs.tgz",),
-  "xgdb_combined"        : ("Linux64_xgdb_combined_Installs.tgz",),
-  "xcc_driver"           : ("Linux64_xcc_driver_Installs.tgz",),
-  "xsim_combined"        : ("Linux64_xsim_combined_Installs.tgz", "Linux64_xsim_combined_private.tgz"),
-  "tools_axe_combined"   : ("Linux64_tools_axe_combined_Installs.tgz", "Linux64_tools_axe_combined_private.tgz"),
-  "xcommon"              : ("Linux64_xcommon.tgz",),
-  "xscope"               : ("Linux64_xscope_Installs.tgz", "Linux64_xscope_private.tgz"),
-  "tools_xcore_libs"     : ("Linux64_tools_xcore_libs_Installs.tgz", "Linux64_tools_xcore_libs_private.tgz"),
+  "tools_common"         : ("%s_tools_common_Installs.%s", "%s_tools_common_private.%s"),
+  "ar"                   : ("%s_ar_Installs.%s",),
+  "tools_xpp"            : ("%s_tools_xpp_Installs.%s",),
+  "xc_compiler_combined" : ("%s_xc_compiler_combined_Installs.%s", "%s_xc_compiler_combined_private.%s"),
+  "xas"                  : ("%s_xas_Installs.%s",),
+  "xobjdump"             : ("%s_xobjdump_Installs.%s",),
+  "tools_libs_combined"  : ("%s_tools_libs_combined_Installs.%s",),
+  "xmap"                 : ("%s_xmap_Installs.%s",),
+  "xflash"               : ("%s_xflash_Installs.%s",),
+  "xgdb_combined"        : ("%s_xgdb_combined_Installs.%s",),
+  "xcc_driver"           : ("%s_xcc_driver_Installs.%s",),
+  "xsim_combined"        : ("%s_xsim_combined_Installs.%s", "%s_xsim_combined_private.%s"),
+  "tools_axe_combined"   : ("%s_tools_axe_combined_Installs.%s", "%s_tools_axe_combined_private.%s"),
+  "xcommon"              : ("%s_xcommon.%s",),
+  "xscope"               : ("%s_xscope_Installs.%s", "%s_xscope_private.%s"),
+  "tools_xcore_libs"     : ("%s_tools_xcore_libs_Installs.%s", "%s_tools_xcore_libs_private.%s"),
 }
 
 # Each container must specify which containers it is dependent
@@ -61,7 +61,7 @@ container_exports = {
 # The ordering of the containers ino the "ordered dict" below must be "correct" 
 # in terms of the container build hierarchy
 #
-my_containers = collections.OrderedDict([
+all_containers = collections.OrderedDict([
   # Container               # List of dependent containers which have been edited and built
   ("xcommon"              , ()),
   ("tools_common"         , ()),
@@ -75,12 +75,23 @@ my_containers = collections.OrderedDict([
   ("xsim_combined"        , ("tools_common", "tools_xpp", "xas", "xc_compiler_combined", "xmap")),
   ("tools_axe_combined"   , ()),
   ("xgdb_combined"        , ("xsim_combined", "tools_common",)),
-  ("tools_libs_combined"  , ("tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
+  ("tools_libs_combined"  , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
   ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
   ("tools_xcore_libs"     , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", "tools_libs_combined")),
-  ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
-  ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
+#  ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
+  ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope")),
+#  ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
+  ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope")),
 ])
+
+build_domains = {
+   "xcommon"          : "tools_xmake,xcommon,tools_waf_xcc",
+   "xsim_combined"    : "arch_simulation_cpp,tools_tools_cpp,lib_softfloat,apps_plugins_cpp",
+   "tools_xcore_libs" : "tools_xcore_libs",
+   "tools_llvm_lib"   : "arch_roms,tools_libs,tools_llvm_lib,tools_newlib,lib_xcore",
+   "xscope"           : "tools_xtrace",
+   "tools_installers" : "infr_test,lib_logging_py,lib_subprocess_py,tools_installers,tools_licensing,tools_xdwarfdump_c,tools_xmosupdate,verif_tests_sw,verif_tests_xcore",
+}
 
 ignoreDomains = ["lib_xmlobject_py"]
 
@@ -119,6 +130,13 @@ def Cmd(cmd, useShell=False):
 def Build(container, domains, deps, debugbuild):
     print "Build(container, deps):", container, deps
 
+    if "PC" == DEST_HOST:
+        hostPrefix = "Microsoft"
+        hostPostfix = "zip"
+    else:
+        hostPrefix = "Linux64"
+        hostPostfix = "tgz"
+
     # Iterate of the locally built dependency container and unpack the their tarballs
     for d in deps:
         glist = container_exports[d]
@@ -129,14 +147,16 @@ def Build(container, domains, deps, debugbuild):
         for g in glist:
             print "g", g
 
+            fileName = g % (hostPrefix, hostPostfix)
+
             if -1 == d.find("xcommon"):
-                cmd = "tar -xf ../%s/%s" % (d, g,)
+                cmd = "tar -xf ../%s/%s" % (d, fileName)
             else:
                 # Special case for xcommon
                 installPath = "Installs/%s/External/Product" % (DEST_HOST,)
                 if not os.path.isdir(installPath):
                     Cmd("mkdir -p %s" % (installPath,))
-                cmd = "tar -C %s -xf ../%s/%s" % (installPath, d, g,)
+                cmd = "tar -C %s -xf ../%s/%s" % (installPath, d, fileName)
 
             print("Expanding: ", cmd)
             Cmd(cmd)
@@ -147,17 +167,8 @@ def Build(container, domains, deps, debugbuild):
     if "" == domains:
         # No domains specified by the user
 
-        if "xsim_combined" == container:
-            # Hack for xsim_combined because it has arch_roms which will not build
-            domains = "arch_simulation_cpp,tools_tools_cpp,lib_softfloat,apps_plugins_cpp"
-        elif "xcommon" == container:
-            # xcommon - only build certain dommains as per Jenkinsfile
-            domains = "tools_xmake,xcommon,tools_waf_xcc"
-        elif "tools_xcore_libs" == container:
-            # tools_xcore_libs - only build certain dommains as per Jenkinsfile
-            domains = "tools_xcore_libs"
-        elif "tools_installers" == container:
-            domains = "infr_test,lib_logging_py,lib_subprocess_py,tools_installers,tools_licensing,tools_xdwarfdump_c,tools_xmosupdate,verif_tests_sw,verif_tests_xcore"
+        if build_domains.has_key(container):
+            domains = build_domains[container]
         else:
             # Find the list of domains to build - any subdir with a Build.pl file is selected
             os.chdir(container)
@@ -201,7 +212,7 @@ def Build(container, domains, deps, debugbuild):
             f.write("cd %s/infr_scripts_pl/Build\n" % (container,))
             f.write("call SetupEnv.bat\n")
             f.write("set PATH=%PATH%;c:\\strawberry\\perl\\bin\n")
-#            f.write("set VCTargetsPath=c:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Microsoft\\VC\\v170\n")
+###            f.write("set VCTargetsPath=c:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\MSBuild\\Microsoft\\VC\\v170\n")
             f.write("perl Build.pl DOMAINS=%s CONFIG=%s\n" % (domains, config))
         cmd = "cmd /c build.bat"
         print "cmd: ", cmd
@@ -212,29 +223,94 @@ def Build(container, domains, deps, debugbuild):
     with open("Jenkinsfile") as f:
         lines = f.readlines()
 
+    current_state = "init"
+    if "PC" == DEST_HOST:
+        searching = '("Windows")'
+    else:
+        searching = '("Centos")'
+
     for i in range(len(lines)):
         l = lines[i]
-        if -1 != l.find('stage("Upload")'):
-            j = i+1
-            # j now has skipped the steps { line
-            while j < len(lines):
-                # Find a command like: '       sh """tar -czf Linux64_xmap_Installs.tgz Installs tools_xmap/test"""'
-                if -1 != lines[j].find("sh ") and -1 != lines[j].find("Linux64"):
-                    if -1 != lines[j].find("Linux64_xcommon"):
-                        # Special case for xcommon
-                        cmd = 'tar -C Installs/%s/External/Product -czf Linux64_xcommon.tgz .' % (DEST_HOST,)
-                        Cmd(cmd, True)
-                    elif -1 == lines[j].find("Linux64_xTIMEdeployer"):
-                        # Ignore nasties like xflash Linux64_xTIMEdeployer
-                        cmd = lines[j].replace("sh ", "").strip().strip('"')
 
-                        if debugbuild:
-                            # for xc_compiler_combined:tools_xcc1_c_llvm
-                            cmd = cmd.replace("/Release/", "/Debug/")
-                        print "cmd:", cmd
-                        Cmd(cmd, True)
-                j += 1
+#        print "current_state", current_state, l
+
+        if "init" == current_state and -1 != l.find(searching):
+            current_state = "host"
+            continue
+
+        if "host" == current_state and -1 != l.find('stage("Upload")'):
+            current_state = "upload"
+            continue
+
+        if "upload" == current_state:
+            if "PC" == DEST_HOST and -1 != lines[i].find("bat ") and -1 != lines[i].find("Microsoft"):
+                current_state = "found_pc"
+            elif -1 != lines[i].find("sh ") and -1 != lines[i].find("Linux64"):
+                current_state = "found_linux"
+            # fall through - do not continue
+
+        if ("found_pc" == current_state or "found_linux" == current_state) and -1 != lines[i].strip().find("}"):
+            # Done all upload commands
+            current_state = "done"
             break
+
+        if "found_pc" == current_state:
+            if -1 != lines[i].find("Microsoft_xcommon"):
+                # Special case for xcommon due to the root of the tar/zip being down in Installs/%s/External/Product
+                cmd = 'tar -C Installs/%s/External/Product -czf Microsoft_xcommon.zip .' % (DEST_HOST,)
+                Cmd(cmd, True)
+            elif -1 == lines[i].find("Microsoft_xTIMEdeployer") and -1 == lines[i].find("archiveArtifacts"):
+                # Ignore nasties like xflash Microsoft_xTIMEdeployer
+
+                print "found_pc: 1: ", lines[i]
+
+                cmd = lines[i].replace("bat ", "").strip().strip('"')
+
+                print "found_pc: 2: ", cmd
+
+                cmd = cmd.replace("zip -qr", "tar czf ").strip().strip('"')
+
+                print "found_pc: 3: ", cmd
+  
+                if -1 != cmd.find("*"):
+                    # Need to do the glob done by "zip" in the Jenkinsfile
+
+                    # Assumes the last "*" glob is item 3
+                    parts = cmd.split()
+                    paths = glob.glob(parts[3])
+
+                    # Build the new command
+                    cmd = ""
+                    for k in range(3):
+                        cmd += parts[k] + " "
+
+                    for p in paths:
+                        cmd += p + " "
+
+                if debugbuild:
+                    # for xc_compiler_combined:tools_xcc1_c_llvm
+                    cmd = cmd.replace("\\Release\\", "\\Debug\\")
+
+                if 0 == cmd.find("tar"):
+                    print "cmd:", cmd
+                    Cmd(cmd, True)
+
+        elif "found_linux" == current_state:
+            if -1 != lines[i].find("Linux64_xcommon") and -1 == lines[i].find("archiveArtifacts"):
+                # Special case for xcommon
+                cmd = 'tar -C Installs/%s/External/Product -czf Linux64_xcommon.tgz .' % (DEST_HOST,)
+                Cmd(cmd, True)
+            elif -1 == lines[i].find("Linux64_xTIMEdeployer"):
+                # Ignore nasties like xflash Linux64_xTIMEdeployer
+                cmd = lines[i].replace("sh ", "").strip().strip('"')
+
+                if debugbuild:
+                    # for xc_compiler_combined:tools_xcc1_c_llvm
+                    cmd = cmd.replace("/Release/", "/Debug/")
+
+                if 0 == cmd.find("tar"):
+                    print "cmd:", cmd
+                    Cmd(cmd, True)
 
     os.chdir("..")
 
@@ -372,7 +448,7 @@ os.chdir("working")
 
 containers_todo = []
 
-for c in my_containers:
+for c in all_containers:
     if 0 == len(args.containers):
         containers_todo.append(c)
     else:
@@ -399,7 +475,7 @@ for c in containers_todo:
         else:
             domains = ""
 
-        deps = my_containers[repo]
+        deps = all_containers[repo]
 
         Build(repo, domains, deps, args.debugbuild)
 
