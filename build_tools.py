@@ -78,10 +78,8 @@ all_containers = collections.OrderedDict([
   ("tools_libs_combined"  , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
   ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
   ("tools_xcore_libs"     , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", "tools_libs_combined")),
-#  ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
-  ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope")),
-#  ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
-  ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope")),
+  ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
+  ("tools_installers"     , ("xcommon", "tools_common", "xsim_combined", "xflash", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
 ])
 
 build_domains = {
