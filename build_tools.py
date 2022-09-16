@@ -19,15 +19,15 @@ DEST_HOST=None
 # This is used to build the directory naming and structure locally
 # identically to how Jenkins will do so
 #
-container_info = {
-  "xmap"       : {"domain" : "tools_xmap",     "flat_structure" : True },
-  "xcc_driver" : {"domain" : "tools_xcc",      "flat_structure" : True },
-  "ar"         : {"domain" : "tools_ar",       "flat_structure" : True },
-  "xas"        : {"domain" : "tools_xas",      "flat_structure" : True },
-  "xobjdump"   : {"domain" : "tools_xobjdump", "flat_structure" : True },
-  "xscope"     : {"domain" : "tools_xtrace",   "flat_structure" : True },
-  "tools_xpp"  : {"domain" : "tools_xpp",      "flat_structure" : True },
-  "tools_xcore_libs"     : {"domain" : "tools_xcore_libs",   "flat_structure" : True },
+container_mapping_info = {
+  "xmap"             : {"domain" : "tools_xmap",       "flat_structure" : True },
+  "xcc_driver"       : {"domain" : "tools_xcc",        "flat_structure" : True },
+  "ar"               : {"domain" : "tools_ar",         "flat_structure" : True },
+  "xas"              : {"domain" : "tools_xas",        "flat_structure" : True },
+  "xobjdump"         : {"domain" : "tools_xobjdump",   "flat_structure" : True },
+  "xscope"           : {"domain" : "tools_xtrace",     "flat_structure" : True },
+  "tools_xpp"        : {"domain" : "tools_xpp",        "flat_structure" : True },
+  "tools_xcore_libs" : {"domain" : "tools_xcore_libs", "flat_structure" : True },
 }
 
 #
@@ -63,6 +63,7 @@ container_exports = {
 #
 all_containers = collections.OrderedDict([
   # Container               # List of dependent containers which have been edited and built
+  ("infr_test"            , ()),
   ("xcommon"              , ()),
   ("tools_common"         , ()),
   ("ar"                   , ()),
@@ -75,7 +76,7 @@ all_containers = collections.OrderedDict([
   ("xsim_combined"        , ("tools_common", "tools_xpp", "xas", "xc_compiler_combined", "xmap")),
   ("tools_axe_combined"   , ()),
   ("xgdb_combined"        , ("xsim_combined", "tools_common",)),
-  ("tools_libs_combined"  , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", )),
+  ("tools_libs_combined"  , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined")),
   ("xscope"               , ("xcommon", "tools_common", "ar", "xas", "tools_xpp", "xcc_driver", "xc_compiler_combined", "tools_libs_combined")),
   ("tools_xcore_libs"     , ("xcommon", "tools_common", "ar", "xas", "xmap", "xcc_driver", "xc_compiler_combined", "tools_xpp", "xobjdump", "xsim_combined", "tools_libs_combined")),
   ("xflash"               , ("xcommon", "tools_common", "xsim_combined", "xobjdump", "ar", "xas", "xcc_driver", "xmap", "xc_compiler_combined", "tools_xpp", "tools_libs_combined", "tools_xcore_libs", "xscope", "xgdb_combined")),
@@ -83,12 +84,12 @@ all_containers = collections.OrderedDict([
 ])
 
 build_domains = {
-   "xcommon"          : "tools_xmake,xcommon,tools_waf_xcc",
-   "xsim_combined"    : "arch_simulation_cpp,tools_tools_cpp,lib_softfloat,apps_plugins_cpp",
-   "tools_xcore_libs" : "tools_xcore_libs",
-   "tools_llvm_lib"   : "arch_roms,tools_libs,tools_llvm_lib,tools_newlib,lib_xcore",
-   "xscope"           : "tools_xtrace",
-   "tools_installers" : "infr_test,lib_logging_py,lib_subprocess_py,tools_installers,tools_licensing,tools_xdwarfdump_c,tools_xmosupdate,verif_tests_sw,verif_tests_xcore",
+   "xcommon"             : "tools_xmake,xcommon,tools_waf_xcc",
+   "xsim_combined"       : "arch_simulation_cpp,tools_tools_cpp,lib_softfloat,apps_plugins_cpp",
+   "tools_xcore_libs"    : "tools_xcore_libs",
+   "tools_libs_combined" : "arch_roms,tools_libs,tools_llvm_lib,tools_newlib,lib_xcore",
+   "xscope"              : "tools_xtrace",
+   "tools_installers"    : "infr_test,lib_logging_py,lib_subprocess_py,tools_installers,tools_licensing,tools_xdwarfdump_c,tools_xmosupdate,verif_tests_sw,verif_tests_xcore",
 }
 
 ignoreDomains = ["lib_xmlobject_py"]
@@ -102,6 +103,7 @@ def ParseArgs():
     parser.add_argument('--git',                                            help='Run git command on each repo')
     parser.add_argument('--mkroot',     default=False, action='store_true', help='Make a new working area root')
     parser.add_argument('--update',     default=False, action='store_true', help='Use with --clone to update a new working area with latest Jenkins tarballs')
+    parser.add_argument('--reimport',   default=False, action='store_true', help='Re-reimport depndendencies build by parent containsers')
     parser.add_argument('containers',   default=None,  nargs="*")
 
     args = parser.parse_args()
@@ -125,8 +127,8 @@ def Cmd(cmd, useShell=False):
         raise Exception("Error %s, failed cmd: %s" % (r, cmdsplit))
 
 
-def Build(container, domains, deps, debugbuild):
-    print "Build(container, deps):", container, deps
+def Build(container, domains, deps, debugbuild, reimport):
+    print "Build(container %s, deps %s, debugbuild %s, reimport %s)" % (container, deps, debugbuild, reimport)
 
     if "PC" == DEST_HOST:
         hostPrefix = "Microsoft"
@@ -135,33 +137,47 @@ def Build(container, domains, deps, debugbuild):
         hostPrefix = "Linux64"
         hostPostfix = "tgz"
 
+    # Remove any temporary import/export dirs
+    for i in ("Installs_imports", "Installs_exports"):
+        try:
+            shutil.rmtree(container +"/" + i, True)
+        except WindowsError, e:
+            print "Failed shutil.rmtree(%s/%s) : %s" % (container, i, e)
+            pass
+
     # Iterate of the locally built dependency container and unpack the their tarballs
     for d in deps:
-        glist = container_exports[d]
+        import_list = container_exports[d]
 
-        print "Build: d, glist", d, glist
+        print "Build: depndendency %s, import list %s", d, import_list
 
         os.chdir(container)
-        for g in glist:
+        for g in import_list:
             print "g", g
 
             fileName = g % (hostPrefix, hostPostfix)
 
             if -1 == d.find("xcommon"):
-                cmd = "tar -xf ../%s/%s" % (d, fileName)
+                cmd = "tar -xf ../exports/%s" % (fileName,)
             else:
                 # Special case for xcommon
                 installPath = "Installs/%s/External/Product" % (DEST_HOST,)
                 if not os.path.isdir(installPath):
                     Cmd("mkdir -p %s" % (installPath,))
-                cmd = "tar -C %s -xf ../%s/%s" % (installPath, d, fileName)
+                cmd = "tar -C %s -xf ../exports/%s" % (installPath, fileName)
 
-            print("Expanding: ", cmd)
+            print("Expanding import tarball: ", cmd)
             Cmd(cmd)
 
         os.chdir("..")
 
-    
+    # The above steps have pulled in the stuff built and exported by parent containers
+    if reimport:
+        return
+
+    if os.path.isdir(container + "/Installs"):
+        shutil.copytree(container + '/Installs', container + '/Installs_imports')
+
     if "" == domains:
         # No domains specified by the user
 
@@ -210,7 +226,6 @@ def Build(container, domains, deps, debugbuild):
             f.write("cd %s/infr_scripts_pl/Build\n" % (container,))
             f.write("call SetupEnv.bat\n")
             f.write("set PATH=%PATH%;c:\\strawberry\\perl\\bin\n")
-###            f.write("set VCTargetsPath=c:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\MSBuild\\Microsoft\\VC\\v170\n")
             f.write("perl Build.pl DOMAINS=%s CONFIG=%s\n" % (domains, config))
         cmd = "cmd /c build.bat"
         print "cmd: ", cmd
@@ -218,6 +233,47 @@ def Build(container, domains, deps, debugbuild):
 
     ## Create the tarballs for installation - find the Upload sh commands
     os.chdir(container)
+
+    # Find only the files this container build has produced in Installs
+
+    if os.path.isdir("Installs_imports"):
+        # We have imported build artefacts from parent container builds
+        os.mkdir("Installs_exports")
+        if "Windows" == platform.system():
+            pathsep = "\\"
+        else:
+            pathsep = "/"
+        for dirpath, dnames, fnames in os.walk("Installs"):
+            for f in fnames:
+                # Does the file exist in the set of imports?
+                testPath = dirpath.replace("Installs", "Installs_imports") + pathsep + f
+                testPath.replace("\\", "/")
+
+                if not os.path.exists(testPath):
+                    # The file is not in the set of imports - copy it to the exports
+                    newPath = dirpath.replace("Installs", "Installs_exports")
+                    dirlist = newPath.split(pathsep)
+
+                    # This loop creates the dest dir
+                    p = ""
+                    for d in dirlist:
+                        p += d
+                        try:
+                            os.mkdir(p)
+                        except WindowsError, e:
+                            pass
+                        p += pathsep
+
+                    # And finally copy the file to the dest dir
+                    shutil.copy(dirpath + pathsep + f, newPath)
+
+    elif os.path.isdir("Installs"):
+        # We did not import anything - we are a "leaf"
+        shutil.copytree("Installs", "Installs_exports")
+
+    os.rename("Installs", "Installs_working")
+    os.rename("Installs_exports", "Installs")
+
     with open("Jenkinsfile") as f:
         lines = f.readlines()
 
@@ -229,8 +285,6 @@ def Build(container, domains, deps, debugbuild):
 
     for i in range(len(lines)):
         l = lines[i]
-
-#        print "current_state", current_state, l
 
         if "init" == current_state and -1 != l.find(searching):
             current_state = "host"
@@ -247,43 +301,34 @@ def Build(container, domains, deps, debugbuild):
                 current_state = "found_linux"
             # fall through - do not continue
 
-        if ("found_pc" == current_state or "found_linux" == current_state) and -1 != lines[i].strip().find("}"):
-            # Done all upload commands
-            current_state = "done"
-            break
-
         if "found_pc" == current_state:
             if -1 != lines[i].find("Microsoft_xcommon"):
                 # Special case for xcommon due to the root of the tar/zip being down in Installs/%s/External/Product
-                cmd = 'tar -C Installs/%s/External/Product -czf Microsoft_xcommon.zip .' % (DEST_HOST,)
+                cmd = 'tar -C Installs/%s/External/Product -czf ../exports/Microsoft_xcommon.zip .' % (DEST_HOST,)
                 Cmd(cmd, True)
             elif -1 == lines[i].find("Microsoft_xTIMEdeployer") and -1 == lines[i].find("archiveArtifacts"):
                 # Ignore nasties like xflash Microsoft_xTIMEdeployer
 
-                print "found_pc: 1: ", lines[i]
-
+                # Remove Jenkins "bat" and all double quotes
                 cmd = lines[i].replace("bat ", "").strip().strip('"')
 
-                print "found_pc: 2: ", cmd
-
+                # Change zip... to tar czf
                 cmd = cmd.replace("zip -qr", "tar czf ").strip().strip('"')
 
-                print "found_pc: 3: ", cmd
-  
-                if -1 != cmd.find("*"):
-                    # Need to do the glob done by "zip" in the Jenkinsfile
-
-                    # Assumes the last "*" glob is item 3
-                    parts = cmd.split()
-                    paths = glob.glob(parts[3])
-
-                    # Build the new command
-                    cmd = ""
-                    for k in range(3):
-                        cmd += parts[k] + " "
-
-                    for p in paths:
-                        cmd += p + " "
+                parts = cmd.split()
+                cmd = ""
+                for part in parts:
+                    if -1 != part.find(".zip"):
+                        # Prefix with the destination dir for the tarball
+                        cmd += "../exports/" + part + " "
+                    elif -1 != part.find("*"):
+                        # Need to do the glob done by "zip" in the Jenkinsfile
+                        paths = glob.glob(part)
+                        for p in paths:
+                            cmd += p + " "
+                    else:
+                        cmd += part + " "
+                cmd = cmd.strip()
 
                 if debugbuild:
                     # for xc_compiler_combined:tools_xcc1_c_llvm
@@ -296,11 +341,26 @@ def Build(container, domains, deps, debugbuild):
         elif "found_linux" == current_state:
             if -1 != lines[i].find("Linux64_xcommon") and -1 == lines[i].find("archiveArtifacts"):
                 # Special case for xcommon
-                cmd = 'tar -C Installs/%s/External/Product -czf Linux64_xcommon.tgz .' % (DEST_HOST,)
+                cmd = 'tar -C Installs/%s/External/Product -czf ../exports/Linux64_xcommon.tgz .' % (DEST_HOST,)
                 Cmd(cmd, True)
             elif -1 == lines[i].find("Linux64_xTIMEdeployer"):
                 # Ignore nasties like xflash Linux64_xTIMEdeployer
                 cmd = lines[i].replace("sh ", "").strip().strip('"')
+
+                parts = cmd.split()
+                cmd = ""
+                for part in parts:
+                    if -1 != part.find(".tgz"):
+                        # Prefix with the destination dir for the tarball
+                        cmd += "../exports/" + part + " "
+                    elif -1 != part.find("*"):
+                        # Need to do the glob done by "zip" in the Jenkinsfile
+                        paths = glob.glob(part)
+                        for p in paths:
+                            cmd += p + " "
+                    else:
+                        cmd += part + " "
+                cmd = cmd.strip()
 
                 if debugbuild:
                     # for xc_compiler_combined:tools_xcc1_c_llvm
@@ -310,6 +370,14 @@ def Build(container, domains, deps, debugbuild):
                     print "cmd:", cmd
                     Cmd(cmd, True)
 
+        if ("found_pc" == current_state or "found_linux" == current_state) and -1 != lines[i].strip().find("}"):
+            # Done all upload commands
+            current_state = "done"
+            break
+
+    os.rename("Installs", "Installs_exports")
+    os.rename("Installs_working", "Installs")
+ 
     os.chdir("..")
 
 
@@ -321,7 +389,7 @@ def Unpack(container, updateOnly):
     if not updateOnly:
         # Do a full clone
 
-        c_info = container_info.get(container)
+        c_info = container_mapping_info.get(container)
         if c_info:
             domain = c_info.get("domain")
             if domain:
@@ -416,8 +484,8 @@ def Git(container, cmd):
     if os.path.exists(".git"):
         Cmd("git status")
         Cmd("git submodule foreach git status")
-    elif container_info[container]["flat_structure"]:
-        os.chdir(container_info[container]["domain"])
+    elif container_mapping_info[container]["flat_structure"]:
+        os.chdir(container_mapping_info[container]["domain"])
         Cmd("git status")
         os.chdir("..")
     os.chdir("..")
@@ -441,6 +509,7 @@ args = ParseArgs()
 
 if args.clone and args.mkroot: 
     os.mkdir("working")
+    os.mkdir("working/exports")
 
 os.chdir("working")
 
@@ -475,7 +544,7 @@ for c in containers_todo:
 
         deps = all_containers[repo]
 
-        Build(repo, domains, deps, args.debugbuild)
+        Build(repo, domains, deps, args.debugbuild, args.reimport)
 
 #
 # Example commands
@@ -495,4 +564,5 @@ for c in containers_todo:
 #  python ~/bin/build_tools.py tools_common:infr_libs_cpp xmap xgdb_combined xflash:tools_xflash tools_installers:tools_installers
 
 # Build all
-# ./build_tools.py xcommon tools_common ar tools_xpp xc_compiler_combined xas xmap xobjdump xsim_combined xgdb_combined xcc_driver tools_libs_combined xscope tools_xcore_libs xflash tools_installers
+# ./build_tools.py xcommon tools_common ar tools_xpp xc_compiler_combined xas xmap xobjdump xsim_combined xgdb_combined xcc_driver tools_libs_combined \
+#                  xscope tools_xcore_libs xflash tools_installers
