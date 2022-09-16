@@ -175,9 +175,6 @@ def Build(container, domains, deps, debugbuild, reimport):
     if reimport:
         return
 
-    if os.path.isdir(container + "/Installs"):
-        shutil.copytree(container + '/Installs', container + '/Installs_imports')
-
     if "" == domains:
         # No domains specified by the user
 
@@ -235,7 +232,6 @@ def Build(container, domains, deps, debugbuild, reimport):
     os.chdir(container)
 
     # Find only the files this container build has produced in Installs
-
     if os.path.isdir("Installs_imports"):
         # We have imported build artefacts from parent container builds
         os.mkdir("Installs_exports")
