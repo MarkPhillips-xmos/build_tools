@@ -132,7 +132,7 @@ def Build(container, domains, deps, debugbuild, reimport):
 
     if "PC" == DEST_HOST:
         hostPrefix = "Microsoft"
-        hostPostfix = "zip"
+        hostPostfix = "tgz"
     else:
         hostPrefix = "Linux64"
         hostPostfix = "tgz"
@@ -149,7 +149,7 @@ def Build(container, domains, deps, debugbuild, reimport):
     for d in deps:
         import_list = container_exports[d]
 
-        print "Build: depndendency %s, import list %s", d, import_list
+        print "Build: depndendency %s, import list %s" % (d, import_list)
 
         os.chdir(container)
         for g in import_list:
@@ -212,21 +212,25 @@ def Build(container, domains, deps, debugbuild, reimport):
             f.write("#!/usr/bin/bash\n")
             f.write("cd %s/infr_scripts_pl/Build\n" % (container,))
             f.write("source ./SetupEnv\n")
+            if os.environ.get('MSYSTEM'):
+                f.write("export PATH=$PATH:/apache-ant-1.10.12/bin")
+                f.write("export JAVA_HOME=/jdk-18.0.2.1")
             f.write("cd ../..\n")
             f.write("Build.pl DOMAINS=%s CONFIG=%s\n" % (domains, config))
 
         cmd = "bash build.sh"
-        print "cmd: ", cmd
-        Cmd(cmd, True)
     else:
         with open("build.bat", "w") as f:
             f.write("cd %s/infr_scripts_pl/Build\n" % (container,))
             f.write("call SetupEnv.bat\n")
+#            f.write("set PATH=%PATH%;c:\\msys64\\usr\\bin\n")    # For BISON
             f.write("set PATH=%PATH%;c:\\strawberry\\perl\\bin\n")
+            f.write("set PATH=%PATH%;c:\\msys64\\apache-ant-1.10.12\\bin\n")
+            f.write("set JAVA_HOME=C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.4.101-hotspot\n")
             f.write("perl Build.pl DOMAINS=%s CONFIG=%s\n" % (domains, config))
         cmd = "cmd /c build.bat"
-        print "cmd: ", cmd
-        Cmd(cmd, True)
+    print "cmd: ", cmd
+    Cmd(cmd, True)
 
     ## Create the tarballs for installation - find the Upload sh commands
     os.chdir(container)
@@ -311,17 +315,20 @@ def Build(container, domains, deps, debugbuild, reimport):
                 # Change zip... to tar czf
                 cmd = cmd.replace("zip -qr", "tar czf ").strip().strip('"')
 
+# TODO                if -1 == cmd.find(".tgz"):
+#                    raise Exception("Jenkinfile does not use .tgz: cmd %s" % (cmd,))
+
                 parts = cmd.split()
                 cmd = ""
                 for part in parts:
-                    if -1 != part.find(".zip"):
+                    if -1 != part.find(".tgz"):
                         # Prefix with the destination dir for the tarball
                         cmd += "../exports/" + part + " "
-                    elif -1 != part.find("*"):
-                        # Need to do the glob done by "zip" in the Jenkinsfile
-                        paths = glob.glob(part)
-                        for p in paths:
-                            cmd += p + " "
+#                    elif -1 != part.find("*"):
+#                        # Need to do the glob done by "zip" in the Jenkinsfile
+#                        paths = glob.glob(part)
+#                        for p in paths:
+#                            cmd += p + " "
                     else:
                         cmd += part + " "
                 cmd = cmd.strip()
@@ -343,17 +350,20 @@ def Build(container, domains, deps, debugbuild, reimport):
                 # Ignore nasties like xflash Linux64_xTIMEdeployer
                 cmd = lines[i].replace("sh ", "").strip().strip('"')
 
+# TODO               if -1 == cmd.find(".tgz"):
+#                    raise Exception("Jenkinfile does not have .tgz: cmd %s" % (cmd,))
+
                 parts = cmd.split()
                 cmd = ""
                 for part in parts:
                     if -1 != part.find(".tgz"):
                         # Prefix with the destination dir for the tarball
                         cmd += "../exports/" + part + " "
-                    elif -1 != part.find("*"):
-                        # Need to do the glob done by "zip" in the Jenkinsfile
-                        paths = glob.glob(part)
-                        for p in paths:
-                            cmd += p + " "
+#                    elif -1 != part.find("*"):
+#                        # Need to do the glob done by "zip" in the Jenkinsfile
+#                        paths = glob.glob(part)
+#                        for p in paths:
+#                            cmd += p + " "
                     else:
                         cmd += part + " "
                 cmd = cmd.strip()
